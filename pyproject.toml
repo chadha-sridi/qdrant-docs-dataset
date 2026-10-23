@@ -1,0 +1,32 @@
+[project]
+name = "qdrant-docs-dataset"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "chadha", email = "chadha.sridi@qdrant.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28,<1",
+    "huggingface-hub>=0.30",
+    "pyyaml>=6.0,<7",
+    "qdrant-client",
+    "sentence-transformers>=5.0,<6",
+    "tokenizers>=0.21,<1",
+]
+
+[project.scripts]
+qdrant-docs-dataset = "qdrant_docs_dataset:main"
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+qdrant-client = { git = "https://github.com/qdrant/qdrant-client", rev = "9f472862c243a600005e93cedd37f4d941186fd2" }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+    "ty>=0.0.90",
+]
