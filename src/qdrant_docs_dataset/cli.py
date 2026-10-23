@@ -88,7 +88,12 @@ def report(pages_count: int, chunks: list[Chunk], budget: int) -> None:
 
 
 def client_from(args: argparse.Namespace) -> QdrantClient:
-    return QdrantClient(url=args.url, api_key=args.api_key, timeout=120)
+    return QdrantClient(
+        url=args.url,
+        api_key=args.api_key,
+        timeout=120,
+        cloud_inference=args.inference == "cloud",
+    )
 
 
 def run_build(args: argparse.Namespace) -> None:
