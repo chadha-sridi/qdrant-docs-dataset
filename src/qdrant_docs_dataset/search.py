@@ -14,7 +14,6 @@ PREFETCH_LIMIT = 20
 class Hit:
     score: float
     url: str
-    anchor: str
     title: str
     section: str
     content_type: str
@@ -78,7 +77,6 @@ def to_hit(point: models.ScoredPoint) -> Hit:
     return Hit(
         score=point.score,
         url=str(payload.get("url", "")),
-        anchor=str(payload.get("anchor", "")),
         title=str(payload.get("title", "")),
         section=str(payload.get("section", "")),
         content_type=str(payload.get("content_type", "")),

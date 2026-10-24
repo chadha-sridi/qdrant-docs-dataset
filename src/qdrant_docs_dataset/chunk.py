@@ -10,7 +10,6 @@ from qdrant_docs_dataset.content import FENCE_RE, Page, is_fence
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
-ANCHOR_STRIP_RE = re.compile(r"[^\w\s-]")
 
 TokenCounter = Callable[[str], int]
 
@@ -19,7 +18,6 @@ TokenCounter = Callable[[str], int]
 class Chunk:
     id: str
     url: str
-    anchor: str
     title: str
     section: str
     content_type: str
@@ -32,7 +30,6 @@ class Chunk:
     def payload(self) -> dict[str, str | int]:
         return {
             "url": self.url,
-            "anchor": self.anchor,
             "title": self.title,
             "section": self.section,
             "content_type": self.content_type,
@@ -44,7 +41,6 @@ class Chunk:
 @dataclass
 class Leaf:
     path: list[str]
-    anchor: str
     blocks: list[str]
 
     @property
@@ -81,7 +77,6 @@ def make_chunk(
     return Chunk(
         id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"{page.url}#{index}")),
         url=page.url,
-        anchor=group.anchor,
         title=page.title,
         section=" > ".join(group.path),
         content_type=page.content_type,
@@ -93,8 +88,7 @@ def make_chunk(
 
 
 def split_leaves(body: str) -> Iterator[Leaf]:
-    anchors = AnchorRegistry()
-    leaf = Leaf(path=[], anchor="", blocks=[])
+    leaf = Leaf(path=[], blocks=[])
     for block in iter_blocks(body):
         heading = None if is_fence(block) else HEADING_RE.match(block)
         if heading is None or len(heading.group(1)) == 1:
@@ -105,7 +99,7 @@ def split_leaves(body: str) -> Iterator[Leaf]:
             yield leaf
         level, text = len(heading.group(1)), strip_inline_markup(heading.group(2))
         path = leaf.path[: level - 2] + [text]
-        leaf = Leaf(path=path, anchor=anchors.register(text), blocks=[])
+        leaf = Leaf(path=path, blocks=[])
     if leaf.blocks:
         yield leaf
 
@@ -144,7 +138,6 @@ def merge_leaves(
         if merged and same_top_section(merged[-1], leaf):
             candidate = Leaf(
                 path=common_prefix(merged[-1].path, leaf.path),
-                anchor=merged[-1].anchor,
                 blocks=merged[-1].blocks + leaf.blocks,
             )
             if size(candidate) <= budget:
@@ -232,17 +225,6 @@ def prose_only(text: str) -> str:
 
 def strip_inline_markup(text: str) -> str:
     return LINK_RE.sub(r"\1", text).replace("`", "").replace("*", "").strip()
-
-
-class AnchorRegistry:
-    def __init__(self) -> None:
-        self.seen: dict[str, int] = {}
-
-    def register(self, heading: str) -> str:
-        base = ANCHOR_STRIP_RE.sub("", heading.lower()).strip().replace(" ", "-")
-        count = self.seen.get(base, 0)
-        self.seen[base] = count + 1
-        return base if count == 0 else f"{base}-{count}"
 
 
 def write_chunks(chunks: list[Chunk], path: Path) -> None:

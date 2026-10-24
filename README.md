@@ -20,7 +20,6 @@ Payload fields:
 | Field | Type | Example |
 |---|---|---|
 | `url` | keyword | `/documentation/search/hybrid-queries/` |
-| `anchor` | string | `choosing-a-fusion-method` |
 | `title` | string | `Hybrid Queries` |
 | `section` | string | `Hybrid Search > Choosing a Fusion Method` |
 | `content_type` | keyword | `documentation`, `article`, or `course` |

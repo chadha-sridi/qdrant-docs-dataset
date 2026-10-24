@@ -113,9 +113,8 @@ def run_query(args: argparse.Namespace) -> None:
         args.limit,
     )
     for hit in hits:
-        location = f"{hit.url}#{hit.anchor}" if hit.anchor else hit.url
         print(
-            f"{hit.score:8.4f}  [{hit.content_type}] {hit.title} > {hit.section}\n          {location}"
+            f"{hit.score:8.4f}  [{hit.content_type}] {hit.title} > {hit.section}\n          {hit.url}"
         )
 
 
