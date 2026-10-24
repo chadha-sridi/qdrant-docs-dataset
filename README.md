@@ -23,10 +23,9 @@ Payload fields:
 | `title` | string | `Hybrid Queries` |
 | `section` | string | `Hybrid Search > Choosing a Fusion Method` |
 | `content_type` | keyword | `documentation`, `article`, or `course` |
-| `chunk_index` | integer | `3` |
 | `text` | text | The chunk in Markdown, including code blocks |
 
-Point IDs are UUIDv5 values derived from the page URL and the chunk index, so regenerating the dataset keeps IDs stable.
+Point IDs are UUIDv5 values derived from the page URL and the position of the chunk in the page, so regenerating the dataset keeps IDs stable.
 
 ## Requirements
 

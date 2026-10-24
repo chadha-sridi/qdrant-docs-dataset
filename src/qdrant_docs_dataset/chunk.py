@@ -21,19 +21,17 @@ class Chunk:
     title: str
     section: str
     content_type: str
-    chunk_index: int
     text: str
     dense_text: str
     tokens: int
 
     @property
-    def payload(self) -> dict[str, str | int]:
+    def payload(self) -> dict[str, str]:
         return {
             "url": self.url,
             "title": self.title,
             "section": self.section,
             "content_type": self.content_type,
-            "chunk_index": self.chunk_index,
             "text": self.text,
         }
 
@@ -80,7 +78,6 @@ def make_chunk(
         title=page.title,
         section=" > ".join(group.path),
         content_type=page.content_type,
-        chunk_index=index,
         text=text,
         dense_text=dense,
         tokens=count_tokens(dense),
