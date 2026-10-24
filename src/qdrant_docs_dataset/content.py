@@ -13,10 +13,28 @@ CONTENT_TYPES = {
 EXCLUDED_PATH_PARTS = {"headless", "snippets"}
 EXCLUDED_PAGE_TYPES = {"delimiter", "external-link"}
 MIN_BODY_WORDS = 40
-SNIPPET_VARIANTS = ("_server/generated/python.md", "_server/http.md", "_server/bash.md")
+# Snippet files to prefer, in order. Other languages are used only when none of these exist.
+SNIPPET_LANGUAGES = ("python", "http", "bash", "shell")
+SNIPPET_DIRS = ("generated", "_server/generated", "", "_server")
+# SDK languages that duplicate a Python block placed next to them.
+ALTERNATIVE_LANGUAGES = {
+    "typescript",
+    "ts",
+    "javascript",
+    "js",
+    "rust",
+    "java",
+    "go",
+    "csharp",
+    "cs",
+    "http",
+}
+PYTHON_LANGUAGES = {"python", "py"}
 
 FRONTMATTER_RE = re.compile(r"\A---[ \t]*\n(.*?)\n---[ \t]*(?:\n|\Z)", re.DOTALL)
-CODE_SNIPPET_RE = re.compile(r'\{\{<\s*code-snippet\s+path="([^"]+)"\s*>\}\}')
+CODE_SNIPPET_RE = re.compile(r"\{\{<\s*code-snippet\s+([^>]*?)\s*>\}\}")
+ATTRIBUTE_RE = re.compile(r'(\w+)="([^"]*)"')
+FENCE_LANGUAGE_RE = re.compile(r"[ \t]*`{3,}[ \t]*([^\s`{]*)")
 SHORTCODE_RE = re.compile(r"\{\{[<%].*?[>%]\}\}", re.DOTALL)
 FENCE_RE = re.compile(
     r"(^[ \t]*`{3,}[^`\n]*\n.*?^[ \t]*`{3,}[ \t]*$)", re.DOTALL | re.MULTILINE
@@ -102,7 +120,11 @@ def page_url(relative: Path, meta: dict) -> str:
 
 
 def clean_body(content_root: Path, body: str) -> str:
-    body = CODE_SNIPPET_RE.sub(lambda m: load_snippet(content_root, m.group(1)), body)
+    body = CODE_SNIPPET_RE.sub(
+        lambda m: load_snippet(content_root, dict(ATTRIBUTE_RE.findall(m.group(1)))),
+        body,
+    )
+    body = drop_python_alternatives(body)
     segments = FENCE_RE.split(body)
     cleaned = [seg if is_fence(seg) else clean_prose(seg) for seg in segments]
     return re.sub(r"\n{3,}", "\n\n", "".join(cleaned)).strip()
@@ -112,14 +134,49 @@ def is_fence(segment: str) -> bool:
     return segment.lstrip(" ").startswith("```")
 
 
-def load_snippet(content_root: Path, snippet_path: str) -> str:
-    base = content_root / snippet_path.strip("/")
-    for variant in SNIPPET_VARIANTS:
-        candidate = base / variant
-        if candidate.exists():
+def load_snippet(content_root: Path, attributes: dict[str, str]) -> str:
+    base = content_root / attributes["path"].strip("/")
+    block = attributes.get("block")
+    dirs = [base / "generated" / block] if block else [base / d for d in SNIPPET_DIRS]
+    candidates = [d / f"{language}.md" for language in SNIPPET_LANGUAGES for d in dirs]
+    candidates += [
+        f
+        for d in dirs
+        if d.is_dir()
+        for f in sorted(d.glob("*.md"))
+        if not f.name.startswith("_")
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
             code = candidate.read_text(encoding="utf-8").strip()
             return f"\n{code}\n" if code.startswith("```") else f"\n```\n{code}\n```\n"
     return "\n"
+
+
+def drop_python_alternatives(body: str) -> str:
+    segments = FENCE_RE.split(body)
+    for group in fence_groups(segments):
+        languages = [fence_language(segments[i]) for i in group]
+        if PYTHON_LANGUAGES & set(languages):
+            for index, language in zip(group, languages, strict=True):
+                if language in ALTERNATIVE_LANGUAGES:
+                    segments[index] = ""
+    return "".join(segments)
+
+
+def fence_groups(segments: list[str]) -> list[list[int]]:
+    groups: list[list[int]] = []
+    for index in range(1, len(segments), 2):
+        if groups and not segments[index - 1].strip():
+            groups[-1].append(index)
+        else:
+            groups.append([index])
+    return groups
+
+
+def fence_language(fence: str) -> str:
+    match = FENCE_LANGUAGE_RE.match(fence)
+    return match.group(1).lower() if match else ""
 
 
 def clean_prose(text: str) -> str:
