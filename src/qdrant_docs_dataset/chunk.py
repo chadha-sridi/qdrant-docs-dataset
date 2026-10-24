@@ -71,14 +71,15 @@ def group_size_counter(
 def make_chunk(
     page: Page, group: Leaf, text: str, index: int, count_tokens: TokenCounter
 ) -> Chunk:
-    dense = dense_text(page, group.path, text)
+    stored = chunk_text(page, group.path, text)
+    dense = prose_only(stored)
     return Chunk(
         id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"{page.url}#{index}")),
         url=page.url,
         title=page.title,
         section=" > ".join(group.path),
         content_type=page.content_type,
-        text=text,
+        text=stored,
         dense_text=dense,
         tokens=count_tokens(dense),
     )
@@ -206,10 +207,13 @@ def pack_lines(
         yield "\n".join(header + current)
 
 
-def dense_text(page: Page, path: list[str], text: str) -> str:
+def chunk_text(page: Page, path: list[str], body: str) -> str:
     heading = " > ".join([page.title, *path])
-    prose = prose_only(text)
-    return f"{heading}\n{prose}" if prose else heading
+    return f"{heading}\n\n{body}"
+
+
+def dense_text(page: Page, path: list[str], body: str) -> str:
+    return prose_only(chunk_text(page, path, body))
 
 
 def prose_only(text: str) -> str:

@@ -13,7 +13,7 @@ Each point is one chunk of a page. Pages are split at H2 headings, then at H3 he
 | Lexical retriever | BM25 scoring on the full-text index of the `text` payload field (Qdrant 1.20 or later) |
 | Payload indexes | `url` keyword, `content_type` keyword, `text` full-text with BM25 scoring, `code` tokenizer, English stemming and stopwords |
 
-The dense vector embeds the page title, the heading path, and the prose of the chunk. Code blocks are left out of the dense input and kept in the `text` payload, where the `code` tokenizer makes identifiers such as `ef_construct` or `efConstruct` searchable.
+The `text` field starts with a heading line, the page title and the headings above the chunk joined with " > ", followed by the chunk body in Markdown. The dense vector embeds `text` with code blocks, image references, and link URLs removed. Code blocks stay in `text`, where BM25 and the `code` tokenizer make identifiers such as `ef_construct` or `efConstruct` searchable. Code examples keep only the Python version when one exists.
 
 Payload fields:
 
@@ -23,7 +23,7 @@ Payload fields:
 | `title` | string | `Hybrid Queries` |
 | `section` | string | `Hybrid Search > Choosing a Fusion Method` |
 | `content_type` | keyword | `documentation`, `article`, or `course` |
-| `text` | text | The chunk in Markdown, including code blocks |
+| `text` | text | Heading line, then the chunk in Markdown, including code blocks |
 
 Point IDs are UUIDv5 values derived from the page URL and the position of the chunk in the page, so regenerating the dataset keeps IDs stable.
 
