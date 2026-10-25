@@ -1021,7 +1021,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "qdrant-docs-dataset"
+name = "qdrant-sample-datasets"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -1029,8 +1029,12 @@ dependencies = [
     { name = "huggingface-hub" },
     { name = "pyyaml" },
     { name = "qdrant-client" },
-    { name = "sentence-transformers" },
     { name = "tokenizers" },
+]
+
+[package.optional-dependencies]
+local = [
+    { name = "sentence-transformers" },
 ]
 
 [package.dev-dependencies]
@@ -1045,9 +1049,10 @@ requires-dist = [
     { name = "huggingface-hub", specifier = ">=0.30" },
     { name = "pyyaml", specifier = ">=6.0,<7" },
     { name = "qdrant-client", git = "https://github.com/qdrant/qdrant-client?rev=9f472862c243a600005e93cedd37f4d941186fd2" },
-    { name = "sentence-transformers", specifier = ">=5.0,<6" },
+    { name = "sentence-transformers", marker = "extra == 'local'", specifier = ">=5.0,<6" },
     { name = "tokenizers", specifier = ">=0.21,<1" },
 ]
+provides-extras = ["local"]
 
 [package.metadata.requires-dev]
 dev = [

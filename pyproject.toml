@@ -1,7 +1,7 @@
 [project]
-name = "qdrant-docs-dataset"
+name = "qdrant-sample-datasets"
 version = "0.1.0"
-description = "Add your description here"
+description = "Build Qdrant sample dataset snapshots"
 authors = [
     { name = "chadha", email = "chadha.sridi@qdrant.com" }
 ]
@@ -11,12 +11,15 @@ dependencies = [
     "huggingface-hub>=0.30",
     "pyyaml>=6.0,<7",
     "qdrant-client",
-    "sentence-transformers>=5.0,<6",
     "tokenizers>=0.21,<1",
 ]
 
+[project.optional-dependencies]
+# Computes embeddings on your machine with --inference local.
+local = ["sentence-transformers>=5.0,<6"]
+
 [project.scripts]
-qdrant-docs-dataset = "qdrant_docs_dataset:main"
+qdrant-datasets = "qdrant_sample_datasets:main"
 
 [build-system]
 requires = ["uv_build>=0.12.17,<0.13.0"]

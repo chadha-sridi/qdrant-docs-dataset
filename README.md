@@ -1,104 +1,73 @@
-# Qdrant Docs Dataset
+# Qdrant Sample Datasets
 
-A sample hybrid search dataset built from the content of [qdrant.tech](https://qdrant.tech): the documentation, the technical articles, and the Qdrant Academy course. It is meant to be published as a snapshot on the [datasets page](https://qdrant.tech/documentation/datasets/) so people can try hybrid search on a real corpus without running any inference themselves.
+This repository builds the sample datasets that Qdrant publishes as snapshots on the [datasets page](https://qdrant.tech/documentation/datasets/). Each dataset is prepared from a public source, embedded, loaded into a Qdrant collection, and exported as a snapshot that anyone can restore and query.
 
-## What is in the collection
+## Datasets
 
-Each point is one chunk of a page. The chunker follows the page's heading tree. A section that fits the token budget becomes one chunk, with its subsection headings kept in the text. A section that is too large is split into its intro and its subsections, and a section with no subsections is split at paragraph boundaries. Chunks under 20 words are merged into a neighboring chunk from the same page.
+| Dataset | Description | Points | Vectors | Dataset card |
+|---|---|---|---|---|
+| `docs` | Qdrant documentation, articles, and course, chunked by section | 3593 | Dense E5 small, plus BM25 on a full-text index | [Qdrant Docs](src/qdrant_sample_datasets/datasets/docs/README.md) |
 
-| Item | Value |
-|---|---|
-| Points | 3593 chunks from 504 pages |
-| Dense vector `dense` | `intfloat/multilingual-e5-small`, 384 dimensions, cosine |
-| Lexical retriever | BM25 scoring on the full-text index of the `text` payload field (Qdrant 1.20 or later) |
-| Payload indexes | `url` keyword, `content_type` keyword, `has_code` bool, `text` full-text with BM25 scoring, `code` tokenizer, English stemming and stopwords |
+Each dataset card describes the collection, the payload fields and indexes, the source license, a query example, and how to build it.
 
-The `text` field starts with a heading line, the page title and the headings above the chunk joined with " > ", followed by the chunk body in Markdown. The dense vector embeds `text` with code blocks, image references, and link URLs removed. Code blocks stay in `text`, where BM25 and the `code` tokenizer make identifiers such as `ef_construct` or `efConstruct` searchable. Code examples keep only the Python version when one exists.
+## Setup
 
-Payload fields:
-
-| Field | Type | Index | Example |
-|---|---|---|---|
-| `url` | string | Keyword | `/documentation/search/hybrid-queries/` |
-| `title` | string | None | `Hybrid Queries` |
-| `section` | string | None | `Hybrid Search > Choosing a Fusion Method` |
-| `content_type` | string | Keyword | `documentation`, `article`, or `course` |
-| `has_code` | bool | Bool | `true` when the chunk contains at least one code block |
-| `text` | string | Full-text with BM25 | Heading line, then the chunk in Markdown, including code blocks |
-
-The full-text index on `text` uses this configuration:
-
-| Setting | Value |
-|---|---|
-| Tokenizer | `code` |
-| Lowercase | Yes |
-| Stemmer | English Snowball |
-| Stopwords | English |
-| Scoring | BM25, with `k` and `b` set per query (defaults 1.2 and 0.75) |
-
-Point IDs are UUIDv5 values derived from the page URL and the position of the chunk in the page, so regenerating the dataset keeps the IDs of unchanged pages stable.
-
-## Requirements
-
-- Qdrant 1.20 or later. The BM25 text query and `scoring` on the full-text index were introduced in 1.20.
-- A Python client with the `TextQuery` model, which is any `qdrant-client` release from 1.20 on.
-
-## Querying the dataset
-
-On Qdrant Cloud, the dense model is free with Cloud Inference, and the BM25 side needs no inference at all. A hybrid query is one request:
-
-```python
-from qdrant_client import QdrantClient, models
-
-client = QdrantClient(url="https://YOUR-CLUSTER.cloud.qdrant.io", api_key="YOUR-KEY")
-
-question = "how do I tune ef_construct for better recall"
-
-results = client.query_points(
-    collection_name="qdrant-docs",
-    prefetch=[
-        models.Prefetch(
-            query=models.Document(text=question, model="intfloat/multilingual-e5-small"),
-            using="dense",
-            limit=20,
-        ),
-        models.Prefetch(query=models.TextQuery(text=question), using="text", limit=20),
-    ],
-    query=models.FusionQuery(fusion=models.Fusion.RRF),
-    limit=5,
-)
-```
-
-To get one result per page instead of per chunk, use `query_points_groups` with `group_by="url"`. The same prefetch and fusion apply.
-
-The example fuses both retrievers with equal weights. Tune the RRF weights for your queries.
-
-Cloud Inference adds the `query:` and `passage:` prefixes that E5 models expect, so no prefix handling is needed on the client.
-
-## Building the dataset
-
-The repo is a `uv` project. The `qdrant-docs-dataset` command has four steps:
+You need Python 3.12 or later and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone --depth 1 https://github.com/qdrant/landing_page.git
-uv run qdrant-docs-dataset chunk --content landing_page/qdrant-landing/content --out chunks.jsonl
-uv run qdrant-docs-dataset build --chunks chunks.jsonl --url http://localhost:6333 --inference local
-uv run qdrant-docs-dataset query "what is the difference between rrf and dbsf" --mode hybrid
-uv run qdrant-docs-dataset snapshot --out snapshots
+uv sync
 ```
 
-`--inference local` computes the dense vectors on your machine with `sentence-transformers`. `--inference cloud` sends `Document` objects so Qdrant Cloud Inference computes them. Use `cloud` against a Qdrant Cloud cluster for the published snapshot so the stored vectors come from the same model deployment people query with. `QDRANT_URL` and `QDRANT_API_KEY` are read from the environment when the flags are omitted.
+Computing embeddings on your machine with `--inference local` needs the `local` extra:
 
-`chunk` prints the number of pages and chunks and the token size distribution. Chunks written to `chunks.jsonl` also carry the `dense_text` and `tokens` fields used during the build. Those are not stored in the payload.
+```bash
+uv sync --extra local
+```
 
-### What the chunker does with the source
+Each dataset card lists the Qdrant version its collection needs.
 
-- Skips `headless` and `snippets` directories, draft pages, `delimiter` and `external-link` navigation entries, pages excluded from the sitemap, and pages with fewer than 40 words of body.
-- Resolves `{{< code-snippet >}}` shortcodes to the Python snippet, falling back to the HTTP, bash, or shell variant. Every other shortcode is dropped.
-- Keeps only the Python version of SDK examples. Pages without a Python example keep their code as it is.
-- Treats the first H1 as the page title. On pages that also use H1 for sections, every heading moves down one level.
-- Never splits a code block, and does not count code toward the token budget.
-- Strips HTML tags from prose but keeps their text, so `<aside>` notes survive. Inline `<svg>`, `<script>`, `<iframe>`, and `<video>` blocks are removed.
-- Keeps Markdown tables and lists. A table that exceeds the token budget is split by rows, and the header row is repeated in each part.
-- Uses a budget of 480 E5 tokens per chunk, and allows up to 505 tokens when merging a chunk under 20 words.
-- Builds the page URL the same way Hugo does: path based, with `url:` and `slug:` frontmatter overrides.
+## Usage
+
+Every dataset goes through the same four steps:
+
+```bash
+uv run qdrant-datasets list
+uv run qdrant-datasets <dataset> prepare [dataset options]
+uv run qdrant-datasets <dataset> build --inference cloud
+uv run qdrant-datasets <dataset> query "your question" --inference cloud
+uv run qdrant-datasets <dataset> snapshot --inference cloud
+```
+
+| Step | What it does | Output |
+|---|---|---|
+| `prepare` | Reads the source data and writes cleaned records | `data/<dataset>/records.jsonl` |
+| `build` | Recreates the collection, upserts the records, and creates the payload indexes | A Qdrant collection |
+| `query` | Runs a search to check the collection | Results in the terminal |
+| `snapshot` | Creates a collection snapshot and downloads it | `snapshots/<dataset>/` |
+
+`build`, `query`, and `snapshot` connect to the cluster in `QDRANT_URL` with the key in `QDRANT_API_KEY`, or to `http://localhost:6333` when those aren't set. `--collection` overrides the default collection name. `--inference cloud` lets Qdrant Cloud Inference compute the embeddings, and `--inference local` computes them on your machine. Run any step with `--help` to see its options.
+
+## Repository Layout
+
+```text
+src/qdrant_sample_datasets/
+├── cli.py                 # qdrant-datasets command
+├── core/
+│   ├── dataset.py         # Dataset base class, CollectionSpec, Hit
+│   ├── qdrant.py          # Connect, build a collection, download a snapshot
+│   ├── records.py         # JSONL helpers and batching
+│   └── local_embeddings.py
+└── datasets/
+    ├── __init__.py        # Registry of available datasets
+    └── docs/              # One folder per dataset, with its README.md card
+```
+
+`data/` and `snapshots/` hold generated files and are ignored by git.
+
+## Adding a Dataset
+
+1. Create a folder under `src/qdrant_sample_datasets/datasets/` with a subclass of `Dataset` from `core/dataset.py`. It sets the dataset name, a description, and a `CollectionSpec` with the vectors and payload indexes. It implements `prepare`, `points`, and `search`, and can add its own options to the `prepare` and `query` steps.
+2. Register an instance in `src/qdrant_sample_datasets/datasets/__init__.py`.
+3. Write the dataset card as `README.md` in the dataset folder, and add a row to the table in this file.
+4. Add dependencies that only this dataset needs as an optional extra in `pyproject.toml`, and import them inside the functions that use them, so the other datasets don't need them.
+5. Confirm that the source license allows redistribution, and credit the source in the dataset card as its license requires.

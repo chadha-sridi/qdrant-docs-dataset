@@ -1,7 +1,8 @@
 from functools import cache
 
-from sentence_transformers import SentenceTransformer
 from tokenizers import Tokenizer
+
+from qdrant_sample_datasets.core.local_embeddings import encode
 
 DENSE_MODEL = "intfloat/multilingual-e5-small"
 DENSE_SIZE = 384
@@ -21,21 +22,9 @@ def count_tokens(text: str) -> int:
     return len(tokenizer().encode(text, add_special_tokens=False).ids)
 
 
-@cache
-def model() -> SentenceTransformer:
-    return SentenceTransformer(DENSE_MODEL)
-
-
 def embed_passages(texts: list[str]) -> list[list[float]]:
-    return encode([f"passage: {text}" for text in texts])
+    return encode(DENSE_MODEL, [f"passage: {text}" for text in texts])
 
 
 def embed_query(text: str) -> list[float]:
-    return encode([f"query: {text}"])[0]
-
-
-def encode(texts: list[str]) -> list[list[float]]:
-    vectors = model().encode(
-        texts, batch_size=64, normalize_embeddings=True, show_progress_bar=False
-    )
-    return vectors.tolist()
+    return encode(DENSE_MODEL, [f"query: {text}"])[0]

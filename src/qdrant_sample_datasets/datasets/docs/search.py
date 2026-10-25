@@ -1,22 +1,14 @@
-from dataclasses import dataclass
 from typing import Literal
 
 from qdrant_client import QdrantClient, models
 
-from qdrant_docs_dataset.build import DENSE_VECTOR, TEXT_FIELD, Inference
-from qdrant_docs_dataset.embed import DENSE_MODEL, embed_query
+from qdrant_sample_datasets.core.dataset import Hit, Inference
+from qdrant_sample_datasets.datasets.docs.model import DENSE_MODEL, embed_query
+from qdrant_sample_datasets.datasets.docs.schema import DENSE_VECTOR, TEXT_FIELD
 
 Mode = Literal["dense", "text", "hybrid", "groups"]
+MODES: tuple[Mode, ...] = ("dense", "text", "hybrid", "groups")
 PREFETCH_LIMIT = 20
-
-
-@dataclass(frozen=True)
-class Hit:
-    score: float
-    url: str
-    title: str
-    section: str
-    content_type: str
 
 
 def search(
@@ -30,20 +22,20 @@ def search(
     dense = dense_query(query, inference)
     text = models.TextQuery(text=query)
     if mode == "dense":
-        response = client.query_points(
+        points = client.query_points(
             collection, query=dense, using=DENSE_VECTOR, limit=limit
-        )
+        ).points
     elif mode == "text":
-        response = client.query_points(
+        points = client.query_points(
             collection, query=text, using=TEXT_FIELD, limit=limit
-        )
+        ).points
     elif mode == "hybrid":
-        response = client.query_points(
+        points = client.query_points(
             collection,
             prefetch=prefetches(dense, text),
             query=models.FusionQuery(fusion=models.Fusion.RRF),
             limit=limit,
-        )
+        ).points
     else:
         groups = client.query_points_groups(
             collection,
@@ -53,8 +45,8 @@ def search(
             group_size=1,
             limit=limit,
         )
-        return [to_hit(group.hits[0]) for group in groups.groups]
-    return [to_hit(point) for point in response.points]
+        points = [group.hits[0] for group in groups.groups]
+    return [to_hit(point) for point in points]
 
 
 def dense_query(query: str, inference: Inference) -> list[float] | models.Document:
@@ -76,8 +68,6 @@ def to_hit(point: models.ScoredPoint) -> Hit:
     payload = point.payload or {}
     return Hit(
         score=point.score,
-        url=str(payload.get("url", "")),
-        title=str(payload.get("title", "")),
-        section=str(payload.get("section", "")),
-        content_type=str(payload.get("content_type", "")),
+        title=f"[{payload.get('content_type', '')}] {payload.get('title', '')} > {payload.get('section', '')}",
+        location=str(payload.get("url", "")),
     )

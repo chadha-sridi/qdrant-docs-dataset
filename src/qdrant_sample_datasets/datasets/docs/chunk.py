@@ -1,11 +1,11 @@
-import json
 import re
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from qdrant_docs_dataset.content import FENCE_RE, Page, is_fence
+from qdrant_sample_datasets.core.records import read_jsonl, write_jsonl
+from qdrant_sample_datasets.datasets.docs.content import FENCE_RE, Page, is_fence
 
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
@@ -321,11 +321,8 @@ def strip_inline_markup(text: str) -> str:
 
 
 def write_chunks(chunks: list[Chunk], path: Path) -> None:
-    with path.open("w", encoding="utf-8") as handle:
-        for chunk in chunks:
-            handle.write(json.dumps(asdict(chunk), ensure_ascii=False) + "\n")
+    write_jsonl((asdict(chunk) for chunk in chunks), path)
 
 
 def read_chunks(path: Path) -> list[Chunk]:
-    with path.open(encoding="utf-8") as handle:
-        return [Chunk(**json.loads(line)) for line in handle if line.strip()]
+    return [Chunk(**row) for row in read_jsonl(path)]
