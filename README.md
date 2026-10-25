@@ -26,6 +26,16 @@ Payload fields:
 | `has_code` | bool | `true` when the chunk contains at least one code block |
 | `text` | text | Heading line, then the chunk in Markdown, including code blocks |
 
+The full-text index on `text` uses this configuration:
+
+| Setting | Value |
+|---|---|
+| Tokenizer | `code` |
+| Lowercase | Yes |
+| Stemmer | English Snowball |
+| Stopwords | English |
+| Scoring | BM25, with `k` and `b` set per query (defaults 1.2 and 0.75) |
+
 Point IDs are UUIDv5 values derived from the page URL and the position of the chunk in the page, so regenerating the dataset keeps IDs stable.
 
 ## Requirements
@@ -60,6 +70,8 @@ results = client.query_points(
 ```
 
 To get one result per page instead of per chunk, use `query_points_groups` with `group_by="url"`. The same prefetch and fusion apply.
+
+The example fuses both retrievers with equal weights. Tune the RRF weights for your queries.
 
 Cloud Inference adds the `query:` and `passage:` prefixes that E5 models expect, so no prefix handling is needed on the client.
 
