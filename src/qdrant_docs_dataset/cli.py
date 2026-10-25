@@ -9,7 +9,7 @@ from qdrant_client import QdrantClient
 from qdrant_docs_dataset.build import build_collection, download_snapshot
 from qdrant_docs_dataset.chunk import Chunk, chunk_page, read_chunks, write_chunks
 from qdrant_docs_dataset.content import CONTENT_TYPES, load_pages
-from qdrant_docs_dataset.embed import TOKEN_BUDGET, count_tokens
+from qdrant_docs_dataset.embed import TOKEN_BUDGET, TOKEN_CEILING, count_tokens
 from qdrant_docs_dataset.search import search
 
 DEFAULT_COLLECTION = "qdrant-docs"
@@ -72,7 +72,7 @@ def run_chunk(args: argparse.Namespace) -> None:
     pages = load_pages(args.content, args.sections)
     chunks: list[Chunk] = []
     for page in pages:
-        chunks.extend(chunk_page(page, count_tokens, args.budget))
+        chunks.extend(chunk_page(page, count_tokens, args.budget, TOKEN_CEILING))
     write_chunks(chunks, args.out)
     report(pages_count=len(pages), chunks=chunks, budget=args.budget)
 
@@ -83,7 +83,8 @@ def report(pages_count: int, chunks: list[Chunk], budget: int) -> None:
     print(f"pages: {pages_count}  chunks: {len(chunks)}  {dict(by_type)}")
     print(
         f"tokens p50={statistics.median(tokens):.0f} p90={tokens[int(len(tokens) * 0.9)]} "
-        f"max={tokens[-1]} over_budget={sum(t > budget for t in tokens)}"
+        f"max={tokens[-1]} over_budget={sum(t > budget for t in tokens)} "
+        f"over_ceiling={sum(t > TOKEN_CEILING for t in tokens)}"
     )
 
 

@@ -2,7 +2,7 @@ import json
 import re
 import uuid
 from collections.abc import Callable, Iterator
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from qdrant_docs_dataset.content import FENCE_RE, Page, is_fence
@@ -10,8 +10,14 @@ from qdrant_docs_dataset.content import FENCE_RE, Page, is_fence
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+HEADING_ID_RE = re.compile(r"\s*\{#[^}]*\}")
+# Chunks with fewer words than this are merged into a neighbor.
+MIN_CHUNK_WORDS = 20
 
 TokenCounter = Callable[[str], int]
+Heading = tuple[int, str]
+HeadingPath = tuple[Heading, ...]
+PieceSizer = Callable[[HeadingPath, str], int]
 
 
 @dataclass(frozen=True)
@@ -39,70 +45,53 @@ class Chunk:
 
 
 @dataclass
-class Leaf:
-    path: list[str]
-    blocks: list[str]
+class Section:
+    heading: Heading | None
+    path: HeadingPath
+    blocks: list[str] = field(default_factory=list)
+    children: list["Section"] = field(default_factory=list)
 
     @property
-    def text(self) -> str:
-        return "\n\n".join(self.blocks)
+    def level(self) -> int:
+        return self.heading[0] if self.heading else 1
 
 
-def chunk_page(page: Page, count_tokens: TokenCounter, budget: int) -> list[Chunk]:
-    leaves = list(split_leaves(page.body))
-    groups = merge_leaves(
-        leaves,
-        lambda leaf: count_tokens(dense_text(page, leaf.path, leaf.text)),
-        budget,
-    )
-    chunks: list[Chunk] = []
-    for group in groups:
-        for text in pack_blocks(
-            group.blocks, group_size_counter(page, group, count_tokens), budget
-        ):
-            chunks.append(make_chunk(page, group, text, len(chunks), count_tokens))
-    return chunks
+@dataclass(frozen=True)
+class Piece:
+    path: HeadingPath
+    body: str
 
 
-def group_size_counter(
-    page: Page, group: Leaf, count_tokens: TokenCounter
-) -> TokenCounter:
-    return lambda text: count_tokens(dense_text(page, group.path, text))
+def chunk_page(
+    page: Page, count_tokens: TokenCounter, budget: int, ceiling: int
+) -> list[Chunk]:
+    def size(path: HeadingPath, body: str) -> int:
+        return count_tokens(dense_text(page, titles(path), body))
+
+    root = build_tree(normalize_headings(list(iter_blocks(page.body))))
+    pieces = absorb_tiny(split_section(root, size, budget), size, ceiling)
+    return [
+        make_chunk(page, piece, index, count_tokens)
+        for index, piece in enumerate(pieces)
+    ]
 
 
 def make_chunk(
-    page: Page, group: Leaf, text: str, index: int, count_tokens: TokenCounter
+    page: Page, piece: Piece, index: int, count_tokens: TokenCounter
 ) -> Chunk:
-    stored = chunk_text(page, group.path, text)
+    stored = chunk_text(page, titles(piece.path), piece.body)
     dense = prose_only(stored)
     return Chunk(
         id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"{page.url}#{index}")),
         url=page.url,
         title=page.title,
-        section=" > ".join(group.path),
+        section=" > ".join(titles(piece.path)),
         content_type=page.content_type,
         text=stored,
         has_code=FENCE_RE.search(stored) is not None,
         dense_text=dense,
         tokens=count_tokens(dense),
     )
-
-
-def split_leaves(body: str) -> Iterator[Leaf]:
-    leaf = Leaf(path=[], blocks=[])
-    for block in iter_blocks(body):
-        heading = None if is_fence(block) else HEADING_RE.match(block)
-        if heading is None or len(heading.group(1)) == 1:
-            if heading is None:
-                leaf.blocks.append(block)
-            continue
-        if leaf.blocks:
-            yield leaf
-        level, text = len(heading.group(1)), strip_inline_markup(heading.group(2))
-        path = leaf.path[: level - 2] + [text]
-        leaf = Leaf(path=path, blocks=[])
-    if leaf.blocks:
-        yield leaf
 
 
 def iter_blocks(body: str) -> Iterator[str]:
@@ -131,34 +120,133 @@ def split_headings(paragraph: str) -> Iterator[str]:
         yield "\n".join(lines)
 
 
-def merge_leaves(
-    leaves: list[Leaf], size: Callable[[Leaf], int], budget: int
-) -> list[Leaf]:
-    merged: list[Leaf] = []
-    for leaf in leaves:
-        if merged and same_top_section(merged[-1], leaf):
-            candidate = Leaf(
-                path=common_prefix(merged[-1].path, leaf.path),
-                blocks=merged[-1].blocks + leaf.blocks,
-            )
-            if size(candidate) <= budget:
-                merged[-1] = candidate
+def parse_heading(block: str) -> Heading | None:
+    match = None if is_fence(block) else HEADING_RE.match(block)
+    if match is None:
+        return None
+    return len(match.group(1)), strip_inline_markup(match.group(2))
+
+
+def normalize_headings(blocks: list[str]) -> list[str | Heading]:
+    """Drop the title H1 and shift levels down when H1 is also used for sections."""
+    headings = [parse_heading(block) for block in blocks]
+    shift = 1 if sum(1 for h in headings if h and h[0] == 1) > 1 else 0
+    items: list[str | Heading] = []
+    title_dropped = False
+    for block, heading in zip(blocks, headings, strict=True):
+        if heading is None:
+            items.append(block)
+        elif heading[0] == 1 and not title_dropped:
+            title_dropped = True
+        else:
+            items.append((min(heading[0] + shift, 6), heading[1]))
+    return items
+
+
+def build_tree(items: list[str | Heading]) -> Section:
+    root = Section(heading=None, path=())
+    stack = [root]
+    for item in items:
+        if isinstance(item, str):
+            stack[-1].blocks.append(item)
+            continue
+        while len(stack) > 1 and stack[-1].level >= item[0]:
+            stack.pop()
+        node = Section(heading=item, path=(*stack[-1].path, item))
+        stack[-1].children.append(node)
+        stack.append(node)
+    return root
+
+
+def render(section: Section) -> str:
+    parts = list(section.blocks)
+    for child in section.children:
+        body = render(child)
+        if body and child.heading:
+            parts += [heading_line(child.heading), body]
+    return "\n\n".join(parts)
+
+
+def split_section(section: Section, size: PieceSizer, budget: int) -> list[Piece]:
+    """Keep a section whole when it fits, otherwise split it into its intro and subsections."""
+    body = render(section)
+    if not body:
+        return []
+    if size(section.path, body) <= budget:
+        return [Piece(section.path, body)]
+    pieces = split_intro(section, size, budget)
+    for child in section.children:
+        pieces += split_section(child, size, budget)
+    return pieces
+
+
+def split_intro(section: Section, size: PieceSizer, budget: int) -> list[Piece]:
+    if not section.blocks:
+        return []
+    texts = pack_blocks(section.blocks, lambda text: size(section.path, text), budget)
+    return [Piece(section.path, text) for text in texts]
+
+
+def absorb_tiny(pieces: list[Piece], size: PieceSizer, ceiling: int) -> list[Piece]:
+    backward: list[Piece] = []
+    for piece in pieces:
+        if backward and is_tiny(piece):
+            candidate = combine(backward[-1], piece, size)
+            if size(candidate.path, candidate.body) <= ceiling:
+                backward[-1] = candidate
                 continue
-        merged.append(leaf)
-    return merged
+        backward.append(piece)
+    forward: list[Piece] = []
+    for piece in reversed(backward):
+        if forward and is_tiny(piece):
+            candidate = combine(piece, forward[-1], size)
+            if size(candidate.path, candidate.body) <= ceiling:
+                forward[-1] = candidate
+                continue
+        forward.append(piece)
+    return forward[::-1]
 
 
-def same_top_section(left: Leaf, right: Leaf) -> bool:
-    return bool(left.path) and bool(right.path) and left.path[0] == right.path[0]
+def is_tiny(piece: Piece) -> bool:
+    return len(piece.body.split()) < MIN_CHUNK_WORDS
 
 
-def common_prefix(left: list[str], right: list[str]) -> list[str]:
-    prefix: list[str] = []
+def combine(first: Piece, second: Piece, size: PieceSizer) -> Piece:
+    """Join two adjacent pieces under the section of the larger one."""
+    main = (
+        first
+        if size(first.path, first.body) >= size(second.path, second.body)
+        else second
+    )
+    parts = [
+        piece.body
+        if piece is main
+        else rebase(piece, len(common_prefix(main.path, piece.path)))
+        for piece in (first, second)
+    ]
+    return Piece(main.path, "\n\n".join(parts))
+
+
+def rebase(piece: Piece, depth: int) -> str:
+    """Return the piece body with the headings below `depth` written into it."""
+    return "\n\n".join([*map(heading_line, piece.path[depth:]), piece.body])
+
+
+def common_prefix(left: HeadingPath, right: HeadingPath) -> HeadingPath:
+    prefix: list[Heading] = []
     for a, b in zip(left, right, strict=False):
         if a != b:
             break
         prefix.append(a)
-    return prefix
+    return tuple(prefix)
+
+
+def heading_line(heading: Heading) -> str:
+    return f"{'#' * heading[0]} {heading[1]}"
+
+
+def titles(path: HeadingPath) -> list[str]:
+    return [heading[1] for heading in path]
 
 
 def pack_blocks(blocks: list[str], size: TokenCounter, budget: int) -> list[str]:
@@ -228,7 +316,8 @@ def prose_only(text: str) -> str:
 
 
 def strip_inline_markup(text: str) -> str:
-    return LINK_RE.sub(r"\1", text).replace("`", "").replace("*", "").strip()
+    text = HEADING_ID_RE.sub("", LINK_RE.sub(r"\1", text))
+    return text.replace("`", "").replace("*", "").strip()
 
 
 def write_chunks(chunks: list[Chunk], path: Path) -> None:

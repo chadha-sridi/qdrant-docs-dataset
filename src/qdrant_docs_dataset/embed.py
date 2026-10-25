@@ -8,6 +8,8 @@ DENSE_SIZE = 384
 CONTEXT_WINDOW = 512
 # Leave room for the "passage: " prefix and the special tokens the model adds.
 TOKEN_BUDGET = 480
+# Hard limit for merging tiny chunks: 512 minus 3 prefix tokens, 2 special tokens, 2 spare.
+TOKEN_CEILING = 505
 
 
 @cache
