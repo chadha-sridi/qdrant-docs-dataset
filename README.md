@@ -6,10 +6,10 @@ This repository builds the sample datasets that Qdrant publishes as snapshots on
 
 | Dataset | Description | Points | Vectors | Dataset card |
 |---|---|---|---|---|
-| `docs` | Qdrant documentation, articles, and course, chunked by section | 3593 | Dense E5 small, plus BM25 on a full-text index | [Qdrant Docs](src/qdrant_sample_datasets/datasets/docs/README.md) |
+| `docs` | Qdrant documentation, articles, and course, chunked by section | 3,593 | Dense E5 small, plus BM25 on a full-text index | [Qdrant Docs](src/qdrant_sample_datasets/datasets/docs/README.md) |
 | `esci` | Amazon products with real shopping queries and graded relevance judgments | 164,900 | Dense E5 small, plus BM25 on a full-text index | [Amazon ESCI Products](src/qdrant_sample_datasets/datasets/esci/README.md) |
 
-Each dataset card describes the collection, the payload fields and indexes, the source license, a query example, and how to build it.
+Each dataset card describes the collection, its payload fields and indexes, a query example, how to build it, and where the source data comes from.
 
 ## Setup
 
@@ -25,11 +25,11 @@ Computing embeddings on your machine with `--inference local` needs the `local` 
 uv sync --extra local
 ```
 
-Some datasets need an extra of their own to prepare their source data, such as `esci`. Their dataset cards say so, and list the Qdrant version their collection needs.
+Some datasets need an extra of their own to prepare their source data, such as `esci`. Each dataset card names the extra it needs, if any, and the Qdrant version its collection needs.
 
 ## Usage
 
-Every dataset goes through the same four steps:
+Every dataset goes through the same four steps. `list` shows the available datasets, and datasets that ship relevance judgments add an `evaluate` step.
 
 ```bash
 uv run qdrant-datasets list
@@ -37,6 +37,7 @@ uv run qdrant-datasets <dataset> prepare [dataset options]
 uv run qdrant-datasets <dataset> build --inference cloud
 uv run qdrant-datasets <dataset> query "your question" --inference cloud
 uv run qdrant-datasets <dataset> snapshot --inference cloud
+uv run qdrant-datasets <dataset> evaluate --inference cloud
 ```
 
 | Step | What it does | Output |
@@ -45,9 +46,9 @@ uv run qdrant-datasets <dataset> snapshot --inference cloud
 | `build` | Recreates the collection, upserts the records, and creates the payload indexes | A Qdrant collection |
 | `query` | Runs a search to check the collection | Results in the terminal |
 | `snapshot` | Creates a collection snapshot and downloads it | `snapshots/<dataset>/` |
-| `evaluate` | Scores search quality against the relevance judgments, for datasets that ship them | nDCG in the terminal |
+| `evaluate` | Scores search quality against the relevance judgments, for datasets that ship them | Normalized discounted cumulative gain (nDCG) in the terminal |
 
-`build`, `query`, and `snapshot` connect to the cluster in `QDRANT_URL` with the key in `QDRANT_API_KEY`, or to `http://localhost:6333` when those aren't set. `--collection` overrides the default collection name. `--inference cloud` lets Qdrant Cloud Inference compute the embeddings, and `--inference local` computes them on your machine. Run any step with `--help` to see its options.
+`build`, `query`, `snapshot`, and `evaluate` connect to the cluster in `QDRANT_URL` with the key in `QDRANT_API_KEY`, or to `http://localhost:6333` when those aren't set. `--collection` overrides the default collection name. `--inference cloud` lets Qdrant Cloud Inference compute the embeddings, and `--inference local` computes them on your machine. Run any step with `--help` to see its options.
 
 ## Repository Layout
 
@@ -59,7 +60,7 @@ src/qdrant_sample_datasets/
 │   ├── qdrant.py          # Connect, build a collection, download a snapshot
 │   ├── records.py         # JSONL helpers and batching
 │   ├── text_models.py     # Text embedding models, tokens, local or cloud vectors
-│   └── local_embeddings.py
+│   └── local_embeddings.py # sentence-transformers, for --inference local
 └── datasets/
     ├── __init__.py        # Registry of available datasets
     ├── docs/              # One folder per dataset, with its README.md card

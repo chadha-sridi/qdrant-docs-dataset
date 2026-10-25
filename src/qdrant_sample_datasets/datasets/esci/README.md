@@ -20,7 +20,7 @@ Payload fields:
 | Field | Type | Index | Example |
 |---|---|---|---|
 | `product_id` | string | Keyword | `B08LPC9JTB` |
-| `title` | string | None | `2 Pieces 6 AN ORB Male to 5/16 SAE Quick-Disconnect Female Fuel Pump Adapter` |
+| `title` | string | None | `2 Pieces 6 AN ORB Male to 5/16 SAE Quick-Disconnect Female Fuel Pump Adapter Push-On EFI Fitting Aluminum O-ring` |
 | `brand` | string | Keyword | `BBTO`, missing on about 5% of products |
 | `color` | string | Keyword | `Black`, missing on about 31% of products |
 | `text` | string | Full-text with BM25 | Title, brand line, then bullet points |
@@ -41,13 +41,13 @@ Point IDs are UUIDv5 values derived from the product ID.
 
 ## Relevance Judgments
 
-`queries.jsonl` is published next to the snapshot. Each line is one query with its judged products:
+`queries.jsonl` is meant to be published next to the snapshot. Each line is one query with its judged products:
 
 ```json
 {"query_id": 2, "query": "!qscreen fence without holes", "judgments": {"B07DHX8YH2": "E", "B07DS1YCRZ": "S", "B07D7TBSGH": "I"}}
 ```
 
-Shoppers labeled each query and product pair with one of four labels. The gains are the ones the ESCI paper uses for nDCG:
+Each query and product pair was labeled by hand with one of four labels. The gains are the ones the ESCI paper uses for normalized discounted cumulative gain (nDCG):
 
 | Label | Meaning | Gain |
 |---|---|---|
