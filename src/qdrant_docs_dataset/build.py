@@ -56,6 +56,12 @@ def create_indexes(client: QdrantClient, collection: str) -> None:
         )
     client.create_payload_index(
         collection_name=collection,
+        field_name="has_code",
+        field_schema=models.BoolIndexParams(type=models.BoolIndexType.BOOL),
+        wait=True,
+    )
+    client.create_payload_index(
+        collection_name=collection,
         field_name=TEXT_FIELD,
         field_schema=models.TextIndexParams(
             type=models.TextIndexType.TEXT,

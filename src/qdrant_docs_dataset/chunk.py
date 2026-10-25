@@ -22,17 +22,19 @@ class Chunk:
     section: str
     content_type: str
     text: str
+    has_code: bool
     dense_text: str
     tokens: int
 
     @property
-    def payload(self) -> dict[str, str]:
+    def payload(self) -> dict[str, str | bool]:
         return {
             "url": self.url,
             "title": self.title,
             "section": self.section,
             "content_type": self.content_type,
             "text": self.text,
+            "has_code": self.has_code,
         }
 
 
@@ -80,6 +82,7 @@ def make_chunk(
         section=" > ".join(group.path),
         content_type=page.content_type,
         text=stored,
+        has_code=FENCE_RE.search(stored) is not None,
         dense_text=dense,
         tokens=count_tokens(dense),
     )
