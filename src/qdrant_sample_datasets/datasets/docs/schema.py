@@ -1,7 +1,7 @@
 from qdrant_client import models
 
 from qdrant_sample_datasets.core.dataset import CollectionSpec
-from qdrant_sample_datasets.datasets.docs.model import DENSE_SIZE
+from qdrant_sample_datasets.datasets.docs.model import DENSE_MODEL
 
 DENSE_VECTOR = "dense"
 TEXT_FIELD = "text"
@@ -21,7 +21,7 @@ COLLECTION = CollectionSpec(
     default_name="qdrant-docs",
     vectors={
         DENSE_VECTOR: models.VectorParams(
-            size=DENSE_SIZE, distance=models.Distance.COSINE
+            size=DENSE_MODEL.size, distance=models.Distance.COSINE
         )
     },
     payload_indexes={

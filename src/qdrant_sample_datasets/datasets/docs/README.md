@@ -50,7 +50,9 @@ On Qdrant Cloud, the dense model is free with Cloud Inference, and the BM25 side
 ```python
 from qdrant_client import QdrantClient, models
 
-client = QdrantClient(url="https://YOUR-CLUSTER.cloud.qdrant.io", api_key="YOUR-KEY")
+client = QdrantClient(
+    url="https://YOUR-CLUSTER.cloud.qdrant.io", api_key="YOUR-KEY", cloud_inference=True
+)
 
 question = "how do I tune ef_construct for better recall"
 
@@ -58,7 +60,9 @@ results = client.query_points(
     collection_name="qdrant-docs",
     prefetch=[
         models.Prefetch(
-            query=models.Document(text=question, model="intfloat/multilingual-e5-small"),
+            query=models.Document(
+                text=question, model="intfloat/multilingual-e5-small"
+            ),
             using="dense",
             limit=20,
         ),

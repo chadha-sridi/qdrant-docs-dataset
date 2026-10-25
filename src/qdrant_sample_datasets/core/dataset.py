@@ -49,6 +49,21 @@ class Dataset(ABC):
     ) -> Iterator[list[models.PointStruct]]:
         """Read prepared records and yield batches of points to upsert."""
 
+    supports_evaluation = False
+
+    def add_evaluate_arguments(self, parser: ArgumentParser) -> None:
+        """Add dataset-specific options to the evaluate step."""
+
+    def evaluate(
+        self,
+        client: QdrantClient,
+        collection: str,
+        args: Namespace,
+        inference: Inference,
+    ) -> None:
+        """Score the collection against the dataset's relevance judgments, if it ships any."""
+        raise NotImplementedError(f"{self.name} has no relevance judgments")
+
     @abstractmethod
     def search(
         self,

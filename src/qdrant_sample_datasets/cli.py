@@ -59,6 +59,14 @@ def add_dataset_commands(parser: argparse.ArgumentParser, dataset: Dataset) -> N
     dataset.add_query_arguments(query)
     query.set_defaults(func=lambda args: run_query(args, dataset))
 
+    if dataset.supports_evaluation:
+        evaluate = steps.add_parser(
+            "evaluate", help="Score the collection against the relevance judgments"
+        )
+        add_connection_arguments(evaluate, dataset)
+        dataset.add_evaluate_arguments(evaluate)
+        evaluate.set_defaults(func=lambda args: run_evaluate(args, dataset))
+
     snapshot = steps.add_parser(
         "snapshot", help="Create and download a collection snapshot"
     )
@@ -96,6 +104,11 @@ def run_query(args: argparse.Namespace, dataset: Dataset) -> None:
     client = connect(args.url, args.api_key, args.inference)
     for hit in dataset.search(client, args.collection, args.text, args, args.inference):
         print(f"{hit.score:8.4f}  {hit.title}\n          {hit.location}")
+
+
+def run_evaluate(args: argparse.Namespace, dataset: Dataset) -> None:
+    client = connect(args.url, args.api_key, args.inference)
+    dataset.evaluate(client, args.collection, args, args.inference)
 
 
 def run_snapshot(args: argparse.Namespace) -> None:

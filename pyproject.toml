@@ -17,6 +17,8 @@ dependencies = [
 [project.optional-dependencies]
 # Computes embeddings on your machine with --inference local.
 local = ["sentence-transformers>=5.0,<6"]
+# Reads the ESCI source Parquet files.
+esci = ["duckdb>=1.4,<2"]
 
 [project.scripts]
 qdrant-datasets = "qdrant_sample_datasets:main"

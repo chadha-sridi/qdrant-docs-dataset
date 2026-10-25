@@ -8,6 +8,7 @@ from qdrant_client import QdrantClient, models
 
 from qdrant_sample_datasets.core.dataset import Dataset, Hit, Inference
 from qdrant_sample_datasets.core.records import batched
+from qdrant_sample_datasets.core.text_models import passage_vectors
 from qdrant_sample_datasets.datasets.docs.chunk import (
     Chunk,
     chunk_page,
@@ -20,7 +21,6 @@ from qdrant_sample_datasets.datasets.docs.model import (
     TOKEN_BUDGET,
     TOKEN_CEILING,
     count_tokens,
-    embed_passages,
 )
 from qdrant_sample_datasets.datasets.docs.schema import COLLECTION, DENSE_VECTOR
 from qdrant_sample_datasets.datasets.docs.search import MODES, search
@@ -62,7 +62,9 @@ class DocsDataset(Dataset):
         self, records: Path, inference: Inference
     ) -> Iterator[list[models.PointStruct]]:
         for batch in batched(read_chunks(records), BATCH_SIZE):
-            vectors = dense_vectors(batch, inference)
+            vectors = passage_vectors(
+                DENSE_MODEL, [chunk.dense_text for chunk in batch], inference
+            )
             yield [
                 models.PointStruct(
                     id=chunk.id, vector={DENSE_VECTOR: vector}, payload=chunk.payload
@@ -79,17 +81,6 @@ class DocsDataset(Dataset):
         inference: Inference,
     ) -> list[Hit]:
         return search(client, collection, text, args.mode, inference, args.limit)
-
-
-def dense_vectors(
-    chunks: list[Chunk], inference: Inference
-) -> list[list[float]] | list[models.Document]:
-    if inference == "cloud":
-        return [
-            models.Document(text=chunk.dense_text, model=DENSE_MODEL)
-            for chunk in chunks
-        ]
-    return embed_passages([chunk.dense_text for chunk in chunks])
 
 
 def report(pages_count: int, chunks: list[Chunk], budget: int) -> None:

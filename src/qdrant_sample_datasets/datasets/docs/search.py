@@ -3,7 +3,8 @@ from typing import Literal
 from qdrant_client import QdrantClient, models
 
 from qdrant_sample_datasets.core.dataset import Hit, Inference
-from qdrant_sample_datasets.datasets.docs.model import DENSE_MODEL, embed_query
+from qdrant_sample_datasets.core.text_models import query_vector
+from qdrant_sample_datasets.datasets.docs.model import DENSE_MODEL
 from qdrant_sample_datasets.datasets.docs.schema import DENSE_VECTOR, TEXT_FIELD
 
 Mode = Literal["dense", "text", "hybrid", "groups"]
@@ -50,9 +51,7 @@ def search(
 
 
 def dense_query(query: str, inference: Inference) -> list[float] | models.Document:
-    if inference == "cloud":
-        return models.Document(text=query, model=DENSE_MODEL)
-    return embed_query(query)
+    return query_vector(DENSE_MODEL, query, inference)
 
 
 def prefetches(
