@@ -17,14 +17,14 @@ The `text` field starts with a heading line, the page title and the headings abo
 
 Payload fields:
 
-| Field | Type | Example |
-|---|---|---|
-| `url` | keyword | `/documentation/search/hybrid-queries/` |
-| `title` | string | `Hybrid Queries` |
-| `section` | string | `Hybrid Search > Choosing a Fusion Method` |
-| `content_type` | keyword | `documentation`, `article`, or `course` |
-| `has_code` | bool | `true` when the chunk contains at least one code block |
-| `text` | text | Heading line, then the chunk in Markdown, including code blocks |
+| Field | Type | Index | Example |
+|---|---|---|---|
+| `url` | string | Keyword | `/documentation/search/hybrid-queries/` |
+| `title` | string | None | `Hybrid Queries` |
+| `section` | string | None | `Hybrid Search > Choosing a Fusion Method` |
+| `content_type` | string | Keyword | `documentation`, `article`, or `course` |
+| `has_code` | bool | Bool | `true` when the chunk contains at least one code block |
+| `text` | string | Full-text with BM25 | Heading line, then the chunk in Markdown, including code blocks |
 
 The full-text index on `text` uses this configuration:
 
