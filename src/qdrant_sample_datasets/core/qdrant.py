@@ -7,7 +7,9 @@ from qdrant_client import QdrantClient, models
 from qdrant_sample_datasets.core.dataset import CollectionSpec, Inference
 
 
-def connect(url: str, api_key: str | None, inference: Inference) -> QdrantClient:
+def connect(
+    url: str, api_key: str | None, inference: Inference = "local"
+) -> QdrantClient:
     return QdrantClient(
         url=url, api_key=api_key, timeout=120, cloud_inference=inference == "cloud"
     )

@@ -8,7 +8,13 @@ if TYPE_CHECKING:
 @cache
 def load_model(name: str) -> "SentenceTransformer":
     # Imported here because sentence-transformers is the optional `local` extra.
-    from sentence_transformers import SentenceTransformer
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as error:
+        raise SystemExit(
+            "--inference local needs the local extra. Run the command with `uv run --extra local`, "
+            "or pass --inference cloud to let Qdrant Cloud Inference compute the embeddings."
+        ) from error
 
     return SentenceTransformer(name)
 

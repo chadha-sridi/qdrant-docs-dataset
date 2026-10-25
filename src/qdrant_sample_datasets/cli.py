@@ -70,18 +70,21 @@ def add_dataset_commands(parser: argparse.ArgumentParser, dataset: Dataset) -> N
     snapshot = steps.add_parser(
         "snapshot", help="Create and download a collection snapshot"
     )
-    add_connection_arguments(snapshot, dataset)
+    add_connection_arguments(snapshot, dataset, inference=False)
     snapshot.add_argument("--out", type=Path, default=SNAPSHOT_DIR / dataset.name)
     snapshot.set_defaults(func=run_snapshot)
 
 
-def add_connection_arguments(parser: argparse.ArgumentParser, dataset: Dataset) -> None:
+def add_connection_arguments(
+    parser: argparse.ArgumentParser, dataset: Dataset, inference: bool = True
+) -> None:
     parser.add_argument(
         "--url", default=os.environ.get("QDRANT_URL", "http://localhost:6333")
     )
     parser.add_argument("--api-key", default=os.environ.get("QDRANT_API_KEY"))
     parser.add_argument("--collection", default=dataset.collection.default_name)
-    parser.add_argument("--inference", choices=["local", "cloud"], default="local")
+    if inference:
+        parser.add_argument("--inference", choices=["local", "cloud"], default="local")
 
 
 def run_list(args: argparse.Namespace) -> None:
@@ -112,7 +115,7 @@ def run_evaluate(args: argparse.Namespace, dataset: Dataset) -> None:
 
 
 def run_snapshot(args: argparse.Namespace) -> None:
-    client = connect(args.url, args.api_key, args.inference)
+    client = connect(args.url, args.api_key)
     target = download_snapshot(
         client, args.url, args.api_key, args.collection, args.out
     )

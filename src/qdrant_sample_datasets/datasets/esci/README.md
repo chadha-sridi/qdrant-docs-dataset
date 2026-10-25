@@ -113,7 +113,7 @@ uv run --extra esci qdrant-datasets esci prepare
 uv run qdrant-datasets esci build --inference cloud
 uv run qdrant-datasets esci query "usb c headphones" --mode hybrid --inference cloud
 uv run qdrant-datasets esci evaluate --inference cloud
-uv run qdrant-datasets esci snapshot --inference cloud
+uv run qdrant-datasets esci snapshot
 ```
 
 `prepare` downloads the two source files, about 1.2 GB, to `data/esci/raw/` the first time. It writes the products to `data/esci/records.jsonl` and the judgments to `data/esci/queries.jsonl`, then prints the counts and the token size distribution.

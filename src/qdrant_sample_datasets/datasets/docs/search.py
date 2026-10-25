@@ -20,15 +20,16 @@ def search(
     inference: Inference,
     limit: int,
 ) -> list[Hit]:
-    dense = dense_query(query, inference)
     text = models.TextQuery(text=query)
+    if mode == "text":
+        points = client.query_points(
+            collection, query=text, using=TEXT_FIELD, limit=limit
+        ).points
+        return [to_hit(point) for point in points]
+    dense = dense_query(query, inference)
     if mode == "dense":
         points = client.query_points(
             collection, query=dense, using=DENSE_VECTOR, limit=limit
-        ).points
-    elif mode == "text":
-        points = client.query_points(
-            collection, query=text, using=TEXT_FIELD, limit=limit
         ).points
     elif mode == "hybrid":
         points = client.query_points(

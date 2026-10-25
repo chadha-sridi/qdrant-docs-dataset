@@ -36,7 +36,7 @@ uv run qdrant-datasets list
 uv run qdrant-datasets <dataset> prepare [dataset options]
 uv run qdrant-datasets <dataset> build --inference cloud
 uv run qdrant-datasets <dataset> query "your question" --inference cloud
-uv run qdrant-datasets <dataset> snapshot --inference cloud
+uv run qdrant-datasets <dataset> snapshot
 uv run qdrant-datasets <dataset> evaluate --inference cloud
 ```
 
@@ -48,7 +48,7 @@ uv run qdrant-datasets <dataset> evaluate --inference cloud
 | `snapshot` | Creates a collection snapshot and downloads it | `snapshots/<dataset>/` |
 | `evaluate` | Scores search quality against the relevance judgments, for datasets that ship them | Normalized discounted cumulative gain (nDCG) in the terminal |
 
-`build`, `query`, `snapshot`, and `evaluate` connect to the cluster in `QDRANT_URL` with the key in `QDRANT_API_KEY`, or to `http://localhost:6333` when those aren't set. `--collection` overrides the default collection name. `--inference cloud` lets Qdrant Cloud Inference compute the embeddings, and `--inference local` computes them on your machine. Run any step with `--help` to see its options.
+`build`, `query`, `snapshot`, and `evaluate` connect to the cluster in `QDRANT_URL` with the key in `QDRANT_API_KEY`, or to `http://localhost:6333` when those aren't set. `--collection` overrides the default collection name. For `build`, `query`, and `evaluate`, `--inference cloud` lets Qdrant Cloud Inference compute the embeddings, and `--inference local` computes them on your machine. Run any step with `--help` to see its options.
 
 ## Repository Layout
 

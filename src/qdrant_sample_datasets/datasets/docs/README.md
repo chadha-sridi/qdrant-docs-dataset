@@ -87,7 +87,7 @@ git clone --depth 1 https://github.com/qdrant/landing_page.git /tmp/landing_page
 uv run qdrant-datasets docs prepare --content /tmp/landing_page/qdrant-landing/content
 uv run qdrant-datasets docs build --inference cloud
 uv run qdrant-datasets docs query "what is the difference between rrf and dbsf" --mode hybrid --inference cloud
-uv run qdrant-datasets docs snapshot --inference cloud
+uv run qdrant-datasets docs snapshot
 ```
 
 `prepare` writes the chunks to `data/docs/records.jsonl` and prints the number of pages and chunks and the token size distribution. Each record also carries the `dense_text` and `tokens` fields used during the build. Those are not stored in the payload. `snapshot` saves the file to `snapshots/docs/`.

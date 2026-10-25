@@ -13,15 +13,17 @@ PRODUCTS_FILE = "shopping_queries_dataset_products.parquet"
 TAG_RE = re.compile(r"<[^>]+>")
 
 # The US queries of the small version, test split, and every product they judge.
-JUDGMENTS_SQL = """
+TEST_FILTER = "product_locale = 'us' and small_version = 1 and split = 'test'"
+JUDGMENTS_SQL = f"""
     select query_id, query, product_id, esci_label
-    from read_parquet(?)
-    where product_locale = 'us' and small_version = 1 and split = 'test'
+    from read_parquet($examples)
+    where {TEST_FILTER}
 """
-PRODUCTS_SQL = """
+PRODUCTS_SQL = f"""
     select product_id, product_title, product_brand, product_color, product_bullet_point
-    from read_parquet(?)
-    where product_locale = 'us' and product_id in (select product_id from judgments)
+    from read_parquet($products)
+    where product_locale = 'us'
+      and product_id in (select product_id from read_parquet($examples) where {TEST_FILTER})
     order by product_id
 """
 
@@ -76,15 +78,13 @@ def load(raw_dir: Path) -> tuple[list[Product], list[Query]]:
     # Imported here because duckdb is the optional `esci` extra.
     import duckdb
 
+    files = {
+        "examples": str(raw_dir / EXAMPLES_FILE),
+        "products": str(raw_dir / PRODUCTS_FILE),
+    }
     con = duckdb.connect()
-    judgments = con.execute(JUDGMENTS_SQL, [str(raw_dir / EXAMPLES_FILE)]).fetchall()
-    con.execute(
-        "create temp table judgments as select * from (values (null::varchar)) t(product_id) where false"
-    )
-    con.executemany(
-        "insert into judgments values (?)", [(row[2],) for row in judgments]
-    )
-    rows = con.execute(PRODUCTS_SQL, [str(raw_dir / PRODUCTS_FILE)]).fetchall()
+    judgments = con.execute(JUDGMENTS_SQL, {"examples": files["examples"]}).fetchall()
+    rows = con.execute(PRODUCTS_SQL, files).fetchall()
     return [to_product(*row) for row in rows], to_queries(judgments)
 
 
