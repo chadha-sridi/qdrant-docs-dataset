@@ -6,7 +6,7 @@ A multimodal product collection built from [Amazon Berkeley Objects](https://ama
 
 | Item | Value |
 |---|---|
-| Points | 44,933 products across 524 product types |
+| Points | 44,932 products across 524 product types |
 | Vector, unnamed | `qdrant/clip-vit-b-32-vision` on the product's main image, 512 dimensions, cosine |
 | Lexical retriever | BM25 scoring on the full-text index of the `name` payload field (Qdrant 1.20 or later) |
 

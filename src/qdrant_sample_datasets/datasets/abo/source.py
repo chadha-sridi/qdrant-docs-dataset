@@ -23,7 +23,7 @@ IMAGE_URL = BASE_URL + "images/small/"
 PHONE_CASE_TYPE = "CELLULAR_PHONE_CASE"
 # Main images that are placeholders rather than product photos, found by comparing perceptual hashes
 # of every main image: "Image Coming Soon", "Product Image Coming Soon", the AmazonBasics logo,
-# a "Satisfaction Guarantee" card, and an "FPO" graphic. Together they cover 905 products.
+# a "Satisfaction Guarantee" card, and an "FPO" graphic.
 PLACEHOLDER_IMAGE_IDS = frozenset(
     {
         "31OikUsN7qL",
@@ -47,6 +47,8 @@ PLACEHOLDER_IMAGE_IDS = frozenset(
         "51ZZTwJMfpL",
         "21Qlz9BiTzL",
         "21cjGwLXbzL",
+        # A second AmazonBasics logo design, found with a CLIP text query after the first build.
+        "61TuRZdtndL",
     }
 )
 # English variants in order of preference when a listing has several.
