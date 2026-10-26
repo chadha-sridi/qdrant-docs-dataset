@@ -4,7 +4,6 @@ from qdrant_client import QdrantClient, models
 
 from qdrant_sample_datasets.datasets.abo.schema import (
     IMAGE_MODEL,
-    IMAGE_VECTOR,
     NAME_FIELD,
     TEXT_MODEL,
 )
@@ -21,9 +20,7 @@ def search_by_text(
     clip = models.Document(text=query, model=TEXT_MODEL)
     bm25 = models.TextQuery(text=query)
     if mode == "image":
-        return client.query_points(
-            collection, query=clip, using=IMAGE_VECTOR, limit=limit
-        ).points
+        return client.query_points(collection, query=clip, limit=limit).points
     if mode == "text":
         return client.query_points(
             collection, query=bm25, using=NAME_FIELD, limit=limit
@@ -31,7 +28,7 @@ def search_by_text(
     return client.query_points(
         collection,
         prefetch=[
-            models.Prefetch(query=clip, using=IMAGE_VECTOR, limit=PREFETCH_LIMIT),
+            models.Prefetch(query=clip, limit=PREFETCH_LIMIT),
             models.Prefetch(query=bm25, using=NAME_FIELD, limit=PREFETCH_LIMIT),
         ],
         query=models.FusionQuery(fusion=models.Fusion.RRF),
@@ -44,6 +41,4 @@ def search_by_image(
 ) -> list[models.ScoredPoint]:
     """Find products whose main image looks like the given image."""
     image = models.Image(image=image_url, model=IMAGE_MODEL)
-    return client.query_points(
-        collection, query=image, using=IMAGE_VECTOR, limit=limit
-    ).points
+    return client.query_points(collection, query=image, limit=limit).points

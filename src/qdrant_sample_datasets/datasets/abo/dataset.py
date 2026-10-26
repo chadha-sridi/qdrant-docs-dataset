@@ -11,7 +11,6 @@ from qdrant_sample_datasets.core.records import batched, read_jsonl, write_jsonl
 from qdrant_sample_datasets.datasets.abo.schema import (
     COLLECTION,
     IMAGE_MODEL,
-    IMAGE_VECTOR,
 )
 from qdrant_sample_datasets.datasets.abo.search import (
     MODES,
@@ -81,11 +80,7 @@ class AboDataset(Dataset):
             yield [
                 models.PointStruct(
                     id=product.id,
-                    vector={
-                        IMAGE_VECTOR: models.Image(
-                            image=product.image_url, model=IMAGE_MODEL
-                        )
-                    },
+                    vector=models.Image(image=product.image_url, model=IMAGE_MODEL),
                     payload=product.payload,
                 )
                 for product in batch

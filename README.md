@@ -8,7 +8,7 @@ This repository builds the sample datasets that Qdrant publishes as snapshots on
 |---|---|---|---|---|
 | `docs` | Qdrant documentation, articles, and course, chunked by section | 3,593 | Dense E5 small, plus BM25 on a full-text index | [Qdrant Docs](src/qdrant_sample_datasets/datasets/docs/README.md) |
 | `esci` | Amazon products with real shopping queries and graded relevance judgments | 164,900 | Dense E5 small, plus BM25 on a full-text index | [Amazon ESCI Products](src/qdrant_sample_datasets/datasets/esci/README.md) |
-| `abo` | Amazon Berkeley Objects products, searchable by text and by image | 57,822 | CLIP image embeddings, plus BM25 on product names | [Amazon Berkeley Objects Products](src/qdrant_sample_datasets/datasets/abo/README.md) |
+| `abo` | Amazon Berkeley Objects products, searchable by text and by image | 56,918 | CLIP image embeddings, plus BM25 on product names | [Amazon Berkeley Objects Products](src/qdrant_sample_datasets/datasets/abo/README.md) |
 
 Each dataset card describes the collection, its payload fields and indexes, a query example, how to build it, and where the source data comes from.
 

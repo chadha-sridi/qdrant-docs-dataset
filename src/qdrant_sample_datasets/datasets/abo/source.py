@@ -21,6 +21,34 @@ SOURCES = {
 }
 IMAGE_URL = BASE_URL + "images/small/"
 PHONE_CASE_TYPE = "CELLULAR_PHONE_CASE"
+# Main images that are placeholders rather than product photos, found by comparing perceptual hashes
+# of every main image: "Image Coming Soon", "Product Image Coming Soon", the AmazonBasics logo,
+# a "Satisfaction Guarantee" card, and an "FPO" graphic. Together they cover 905 products.
+PLACEHOLDER_IMAGE_IDS = frozenset(
+    {
+        "31OikUsN7qL",
+        "31odnBmkMML",
+        "51S1fx8uSCL",
+        "51UFZGN-IiL",
+        "61kVdTXTJ4L",
+        "31Fve1fdFWL",
+        "31VRqnfhp6L",
+        "31lJBp1dALL",
+        "31ydHQXAUjL",
+        "51l2v7JF-LL",
+        "31OuRX-HAIL",
+        "51zboj55JqL",
+        "61OnkGVhMWL",
+        "61qNcMpEZGL",
+        "61w4fs2ESyL",
+        "61xDi-Uv1kL",
+        "41KSWZxricL",
+        "51M39MBAwDL",
+        "51ZZTwJMfpL",
+        "21Qlz9BiTzL",
+        "21cjGwLXbzL",
+    }
+)
 # English variants in order of preference when a listing has several.
 ENGLISH_TAGS = ("en_US", "en_GB", "en_IN", "en_CA", "en_AU")
 
@@ -90,8 +118,9 @@ def image_paths(path: Path) -> dict[str, str]:
 
 def to_product(listing: dict[str, Any], images: dict[str, str]) -> Product | None:
     name = english(listing.get("item_name"))
-    image_path = images.get(listing.get("main_image_id") or "")
-    if not name or not image_path:
+    image_id = listing.get("main_image_id") or ""
+    image_path = images.get(image_id)
+    if not name or not image_path or image_id in PLACEHOLDER_IMAGE_IDS:
         return None
     product_types = listing.get("product_type") or []
     return Product(

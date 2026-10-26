@@ -13,7 +13,8 @@ Inference = Literal["local", "cloud"]
 @dataclass(frozen=True)
 class CollectionSpec:
     default_name: str
-    vectors: dict[str, models.VectorParams]
+    # One unnamed vector, or several named vectors.
+    vectors: models.VectorParams | dict[str, models.VectorParams]
     payload_indexes: dict[str, models.PayloadFieldSchema]
     # Lower than Qdrant's default for small collections, so the HNSW graph gets built.
     indexing_threshold_kb: int | None = None
