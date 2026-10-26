@@ -10,7 +10,7 @@ NAME_FIELD = "name"
 KEYWORD = models.KeywordIndexParams(type=models.KeywordIndexType.KEYWORD)
 
 COLLECTION = CollectionSpec(
-    default_name="abo-products",
+    default_name="amazon-berkeley-objects",
     # A single unnamed vector, so queries need no `using`.
     vectors=models.VectorParams(size=IMAGE_SIZE, distance=models.Distance.COSINE),
     payload_indexes={

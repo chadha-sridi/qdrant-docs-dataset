@@ -51,7 +51,7 @@ client = QdrantClient(
 question = "brown leather armchair"
 
 results = client.query_points(
-    collection_name="abo-products",
+    collection_name="amazon-berkeley-objects",
     prefetch=[
         models.Prefetch(
             query=models.Document(text=question, model="qdrant/clip-vit-b-32-text"),
@@ -68,7 +68,7 @@ To find products that look like a picture, embed the picture with the image mode
 
 ```python
 results = client.query_points(
-    collection_name="abo-products",
+    collection_name="amazon-berkeley-objects",
     query=models.Image(
         image="https://example.com/photo.jpg", model="qdrant/clip-vit-b-32-vision"
     ),
