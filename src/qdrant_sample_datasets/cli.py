@@ -7,6 +7,7 @@ from qdrant_sample_datasets.core.qdrant import (
     build_collection,
     connect,
     download_snapshot,
+    limit_points,
 )
 from qdrant_sample_datasets.datasets import DATASETS
 
@@ -50,6 +51,9 @@ def add_dataset_commands(parser: argparse.ArgumentParser, dataset: Dataset) -> N
     )
     add_connection_arguments(build, dataset)
     build.add_argument("--records", type=Path, default=records)
+    build.add_argument(
+        "--limit", type=int, help="Upsert only the first N records, for a test build"
+    )
     build.set_defaults(func=lambda args: run_build(args, dataset))
 
     query = steps.add_parser("query", help="Run a search against the collection")
@@ -98,7 +102,7 @@ def run_build(args: argparse.Namespace, dataset: Dataset) -> None:
         client,
         args.collection,
         dataset.collection,
-        dataset.points(args.records, args.inference),
+        limit_points(dataset.points(args.records, args.inference), args.limit),
     )
     print(f"collection {args.collection}: {count} points")
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import httpx
+from qdrant_sample_datasets.core.download import download_file
 
 SOURCE_URL = "https://media.githubusercontent.com/media/amazon-science/esci-data/main/shopping_queries_dataset/"
 EXAMPLES_FILE = "shopping_queries_dataset_examples.parquet"
@@ -58,20 +58,8 @@ class Query:
 
 
 def download(raw_dir: Path) -> None:
-    raw_dir.mkdir(parents=True, exist_ok=True)
     for name in (EXAMPLES_FILE, PRODUCTS_FILE):
-        target = raw_dir / name
-        if target.exists():
-            continue
-        partial = target.with_suffix(".part")
-        with httpx.stream(
-            "GET", SOURCE_URL + name, follow_redirects=True, timeout=None
-        ) as response:
-            response.raise_for_status()
-            with partial.open("wb") as handle:
-                for data in response.iter_bytes():
-                    handle.write(data)
-        partial.rename(target)
+        download_file(SOURCE_URL + name, raw_dir / name)
 
 
 def load(raw_dir: Path) -> tuple[list[Product], list[Query]]:

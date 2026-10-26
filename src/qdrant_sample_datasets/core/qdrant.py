@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 import httpx
@@ -30,6 +30,21 @@ def build_collection(
             collection_name=name, field_name=field_name, field_schema=schema, wait=True
         )
     return client.count(name).count
+
+
+def limit_points(
+    batches: Iterable[list[models.PointStruct]], limit: int | None
+) -> Iterator[list[models.PointStruct]]:
+    """Stop the stream of point batches after `limit` points, or pass it through when there is no limit."""
+    remaining = limit
+    for batch in batches:
+        if remaining is not None:
+            batch = batch[:remaining]
+            remaining -= len(batch)
+        if batch:
+            yield batch
+        if remaining == 0:
+            return
 
 
 def recreate_collection(client: QdrantClient, name: str, spec: CollectionSpec) -> None:

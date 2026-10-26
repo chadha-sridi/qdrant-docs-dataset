@@ -8,6 +8,7 @@ This repository builds the sample datasets that Qdrant publishes as snapshots on
 |---|---|---|---|---|
 | `docs` | Qdrant documentation, articles, and course, chunked by section | 3,593 | Dense E5 small, plus BM25 on a full-text index | [Qdrant Docs](src/qdrant_sample_datasets/datasets/docs/README.md) |
 | `esci` | Amazon products with real shopping queries and graded relevance judgments | 164,900 | Dense E5 small, plus BM25 on a full-text index | [Amazon ESCI Products](src/qdrant_sample_datasets/datasets/esci/README.md) |
+| `abo` | Amazon Berkeley Objects products, searchable by text and by image | 57,822 | CLIP image embeddings, plus BM25 on product names | [Amazon Berkeley Objects Products](src/qdrant_sample_datasets/datasets/abo/README.md) |
 
 Each dataset card describes the collection, its payload fields and indexes, a query example, how to build it, and where the source data comes from.
 
@@ -48,7 +49,7 @@ uv run qdrant-datasets <dataset> evaluate --inference cloud
 | `snapshot` | Creates a collection snapshot and downloads it | `snapshots/<dataset>/` |
 | `evaluate` | Scores search quality against the relevance judgments, for datasets that ship them | Normalized discounted cumulative gain (nDCG) in the terminal |
 
-`build`, `query`, `snapshot`, and `evaluate` connect to the cluster in `QDRANT_URL` with the key in `QDRANT_API_KEY`, or to `http://localhost:6333` when those aren't set. `--collection` overrides the default collection name. For `build`, `query`, and `evaluate`, `--inference cloud` lets Qdrant Cloud Inference compute the embeddings, and `--inference local` computes them on your machine. Run any step with `--help` to see its options.
+`build`, `query`, `snapshot`, and `evaluate` connect to the cluster in `QDRANT_URL` with the key in `QDRANT_API_KEY`, or to `http://localhost:6333` when those aren't set. `--collection` overrides the default collection name. For `build`, `query`, and `evaluate`, `--inference cloud` lets Qdrant Cloud Inference compute the embeddings, and `--inference local` computes them on your machine. `build --limit N` upserts only the first N records, which is useful for checking the cost of a paid model before a full build. Run any step with `--help` to see its options.
 
 ## Repository Layout
 
@@ -57,12 +58,14 @@ src/qdrant_sample_datasets/
 ├── cli.py                 # qdrant-datasets command
 ├── core/
 │   ├── dataset.py         # Dataset base class, CollectionSpec, Hit
+│   ├── download.py        # Download a source file once
 │   ├── qdrant.py          # Connect, build a collection, download a snapshot
 │   ├── records.py         # JSONL helpers and batching
 │   ├── text_models.py     # Text embedding models, tokens, local or cloud vectors
 │   └── local_embeddings.py # sentence-transformers, for --inference local
 └── datasets/
     ├── __init__.py        # Registry of available datasets
+    ├── abo/
     ├── docs/              # One folder per dataset, with its README.md card
     └── esci/
 ```
