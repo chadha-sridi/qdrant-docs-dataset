@@ -5,7 +5,7 @@ import json
 import random
 import tarfile
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -90,9 +90,7 @@ def load(raw_dir: Path, phone_case_cap: int, seed: int) -> list[Product]:
         product = to_product(listing, images)
         if product and product.item_id not in products:
             products[product.item_id] = product
-    return cap_phone_cases(
-        sorted(products.values(), key=lambda p: p.item_id), phone_case_cap, seed
-    )
+    return cap_phone_cases(one_per_image(products.values()), phone_case_cap, seed)
 
 
 def listings(archive: Path) -> Iterator[dict[str, Any]]:
@@ -145,6 +143,23 @@ def english(values: list[dict[str, Any]] | None) -> str | None:
         (str(v).strip() for t, v in by_tag.items() if t and t.startswith("en") and v),
         None,
     )
+
+
+def one_per_image(products: Iterable[Product]) -> list[Product]:
+    """Keep one product per main image, the one with the shortest name.
+
+    Products that share a main image are usually size or color variants, and the shortest
+    name is usually the parent title without the size.
+    """
+    kept: dict[str, Product] = {}
+    for product in products:
+        current = kept.get(product.image_url)
+        if current is None or (len(product.name), product.item_id) < (
+            len(current.name),
+            current.item_id,
+        ):
+            kept[product.image_url] = product
+    return sorted(kept.values(), key=lambda p: p.item_id)
 
 
 def cap_phone_cases(products: list[Product], cap: int, seed: int) -> list[Product]:
