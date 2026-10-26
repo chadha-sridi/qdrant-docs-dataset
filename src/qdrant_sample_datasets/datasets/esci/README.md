@@ -11,7 +11,7 @@ The collection holds every product judged for the US test queries of the dataset
 | Points | 164,900 products |
 | Dense vector `dense` | `intfloat/multilingual-e5-small`, 384 dimensions, cosine |
 | Lexical retriever | BM25 scoring on the full-text index of the `text` payload field (Qdrant 1.20 or later) |
-| Relevance judgments | 181,701 judgments for 8,956 queries, in `queries.jsonl` |
+| Relevance judgments | 181,701 judgments for 8,956 queries, in [`queries.jsonl`](queries.jsonl) |
 
 The `text` field holds the product title, a `Brand:` line when the brand is known, and the bullet points. The dense vector embeds `text`. E5 small reads up to 512 tokens, so for about 3% of products the vector covers only the start of the text, while BM25 indexes all of it. Product descriptions are not included.
 
@@ -41,7 +41,7 @@ Point IDs are UUIDv5 values derived from the product ID.
 
 ## Relevance Judgments
 
-`queries.jsonl` is meant to be published next to the snapshot. Each line is one query with its judged products:
+The judgments are in [`queries.jsonl`](queries.jsonl), next to this card. Each line is one query with its judged products:
 
 ```json
 {"query_id": 2, "query": "!qscreen fence without holes", "judgments": {"B07DHX8YH2": "E", "B07DS1YCRZ": "S", "B07D7TBSGH": "I"}}
@@ -118,9 +118,9 @@ uv run qdrant-datasets esci snapshot
 
 `prepare` downloads the two source files, about 1.2 GB, to `data/esci/raw/` the first time. It writes the products to `data/esci/records.jsonl` and the judgments to `data/esci/queries.jsonl`, then prints the counts and the token size distribution.
 
-`evaluate` runs every query in `queries.jsonl` and prints nDCG@10 for dense, text, and hybrid search. `--mode` picks one search mode, and `--sample` evaluates a random subset of queries.
+`evaluate` runs every query in the `queries.jsonl` next to this card and prints nDCG@10 for dense, text, and hybrid search. `--queries` points it at another file, such as the one `prepare` just wrote. `--mode` picks one search mode, and `--sample` evaluates a random subset of queries.
 
-`snapshot` saves the file to `snapshots/esci/`. Publish `data/esci/queries.jsonl` next to it.
+`snapshot` saves the file to `snapshots/esci/`. If you rebuild the dataset, copy `data/esci/queries.jsonl` over the shipped file so the two stay in sync.
 
 ## License and Attribution
 

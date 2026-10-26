@@ -26,6 +26,8 @@ from qdrant_sample_datasets.datasets.esci.source import Product, Query, download
 BATCH_SIZE = 128
 RAW_DIR = Path("data/esci/raw")
 QUERIES_FILE = "queries.jsonl"
+# The judgments ship with the repository, so evaluate works without running prepare.
+SHIPPED_QUERIES = Path(__file__).parent / QUERIES_FILE
 
 
 class EsciDataset(Dataset):
@@ -48,9 +50,7 @@ class EsciDataset(Dataset):
         parser.add_argument("--mode", choices=MODES, default="hybrid")
 
     def add_evaluate_arguments(self, parser: ArgumentParser) -> None:
-        parser.add_argument(
-            "--queries", type=Path, default=Path("data/esci") / QUERIES_FILE
-        )
+        parser.add_argument("--queries", type=Path, default=SHIPPED_QUERIES)
         parser.add_argument("--mode", choices=[*MODES, "all"], default="all")
         parser.add_argument(
             "--sample", type=int, help="Evaluate a random sample of this many queries"
